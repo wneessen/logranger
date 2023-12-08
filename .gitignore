@@ -1,6 +1,7 @@
-# If you prefer the allow list template instead of the deny list, see community template:
-# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+# SPDX-FileCopyrightText: 2022 Winni Neessen <winni@neessen.dev>
 #
+# SPDX-License-Identifier: CC0-1.0
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -17,5 +18,40 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Go workspace file
-go.work
+# Local testfiles and auth data
+.auth
+examples/*
+
+# SonarQube
+.scannerwork/
+
+# IDEA specific ignores
+# Source: https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
+.idea/
+
+# CMake
+cmake-build-*/
+
+# File-based project format
+*.iws
+
+# IntelliJ
+out/
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+# JIRA plugin
+atlassian-ide-plugin.xml
+
+# Cursive Clojure plugin
+.idea/replstate.xml
+
+# SonarLint plugin
+.idea/sonarlint/
+
+# Crashlytics plugin (for Android Studio and IntelliJ)
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
