@@ -1,0 +1,5 @@
+[server]
+pid_file = "/var/tmp/logranger.pid"
+
+[listener]
+type = "tcp"
