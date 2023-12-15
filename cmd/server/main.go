@@ -45,31 +45,28 @@ func main() {
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc)
-	for {
-		select {
-		case rc := <-sc:
-			if rc == syscall.SIGKILL || rc == syscall.SIGABRT || rc == syscall.SIGINT || rc == syscall.SIGTERM {
-				l.Warn("received signal. shutting down server", slog.String("signal", rc.String()))
-				//s.Stop()
-				l.Info("server gracefully shut down")
-				os.Exit(0)
-			}
-			if rc == syscall.SIGHUP {
-				l.Info(`received "SIGHUP" signal - reloading rules...`)
-				/*
-					_, nr, err := config.New(config.WithConfFile(*cf), config.WithRulesFile(*rf))
-					if err != nil {
-						s.Log.Errorf("%s - skipping reload", err)
-						continue
-					}
-					if err := nr.CheckRegEx(); err != nil {
-						s.Log.Errorf("ruleset validation failed for new ruleset - skipping reload: %s", err)
-						continue
-					}
-					s.SetRules(nr)
+	for rc := range sc {
+		if rc == syscall.SIGKILL || rc == syscall.SIGABRT || rc == syscall.SIGINT || rc == syscall.SIGTERM {
+			l.Warn("received signal. shutting down server", slog.String("signal", rc.String()))
+			// s.Stop()
+			l.Info("server gracefully shut down")
+			os.Exit(0)
+		}
+		if rc == syscall.SIGHUP {
+			l.Info(`received "SIGHUP" signal - reloading rules...`)
+			/*
+				_, nr, err := config.New(config.WithConfFile(*cf), config.WithRulesFile(*rf))
+				if err != nil {
+					s.Log.Errorf("%s - skipping reload", err)
+					continue
+				}
+				if err := nr.CheckRegEx(); err != nil {
+					s.Log.Errorf("ruleset validation failed for new ruleset - skipping reload: %s", err)
+					continue
+				}
+				s.SetRules(nr)
 
-				*/
-			}
+			*/
 		}
 	}
 }
