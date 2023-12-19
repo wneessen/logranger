@@ -31,7 +31,7 @@ type Server struct {
 	wg sync.WaitGroup
 }
 
-// New returns a Server struct
+// New creates a new instance of Server based on the provided Config
 func New(c *Config) *Server {
 	s := &Server{
 		conf: c,
@@ -40,7 +40,8 @@ func New(c *Config) *Server {
 	return s
 }
 
-// Run starts the logranger Server with a new Listener based on the config settings
+// Run starts the logranger Server by creating a new listener using the NewListener
+// method and calling RunWithListener with the obtained listener.
 func (s *Server) Run() error {
 	l, err := NewListener(s.conf)
 	if err != nil {
@@ -49,7 +50,10 @@ func (s *Server) Run() error {
 	return s.RunWithListener(l)
 }
 
-// RunWithListener starts the logranger Server using a provided net.Listener
+// RunWithListener sets the listener for the server and performs some additional
+// tasks for initializing the server. It creates a PID file, writes the process ID
+// to the file, and listens for connections. It returns an error if any of the
+// initialization steps fail.
 func (s *Server) RunWithListener(l net.Listener) error {
 	s.listener = l
 
@@ -74,7 +78,13 @@ func (s *Server) RunWithListener(l net.Listener) error {
 	return nil
 }
 
-// setLogLevel assigns a new slog.Logger instance to the Server based on the configured log level
+// setLogLevel sets the log level based on the value of `s.conf.Log.Level`.
+// It creates a new `slog.HandlerOptions` and assigns the corresponding `slog.Level`
+// based on the value of `s.conf.Log.Level`. If the value is not one of the valid levels,
+// `info` is used as the default level.
+// It then creates a new `slog.JSONHandler` with `os.Stdout` and the handler options.
+// Finally, it creates a new `slog.Logger` with the JSON handler and sets the `s.log` field
+// of the `Server` struct to the logger, with a context value of "logranger".
 func (s *Server) setLogLevel() {
 	lo := slog.HandlerOptions{}
 	switch strings.ToLower(s.conf.Log.Level) {

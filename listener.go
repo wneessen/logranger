@@ -15,11 +15,17 @@ import (
 type ListenerType uint
 
 const (
+	// ListenerUnix is a constant of type ListenerType that represents a UNIX listener.
 	ListenerUnix ListenerType = iota
+	// ListenerTCP is a constant representing the type of listener that uses TCP protocol.
 	ListenerTCP
+	// ListenerTLS is a constant of type ListenerType that represents a TLS listener.
 	ListenerTLS
 )
 
+// NewListener initializes and returns a net.Listener based on the provided
+// configuration. It takes a pointer to a Config struct as a parameter.
+// Returns the net.Listener and an error if any occurred during initialization.
 func NewListener(c *Config) (net.Listener, error) {
 	var l net.Listener
 	var lerr error
@@ -41,7 +47,7 @@ func NewListener(c *Config) (net.Listener, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to load X509 certificate: %w", err)
 		}
-		la := net.JoinHostPort(c.Listener.ListenerTCP.Addr, fmt.Sprintf("%d", c.Listener.ListenerTCP.Port))
+		la := net.JoinHostPort(c.Listener.ListenerTLS.Addr, fmt.Sprintf("%d", c.Listener.ListenerTLS.Port))
 		lc := &tls.Config{Certificates: []tls.Certificate{ce}}
 		l, lerr = tls.Listen("tcp", la, lc)
 	default:

@@ -38,7 +38,10 @@ type Config struct {
 	} `fig:"log"`
 }
 
-// NewConfig returns a new Config object
+// NewConfig creates a new instance of the Config object by reading and loading
+// configuration values. It takes in the file path and file name of the configuration
+// file as parameters. It returns a pointer to the Config object and an error if
+// there was a problem reading or loading the configuration.
 func NewConfig(p, f string) (*Config, error) {
 	co := Config{}
 	_, err := os.Stat(fmt.Sprintf("%s/%s", p, f))
