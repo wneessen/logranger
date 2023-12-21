@@ -3,7 +3,4 @@
 # SPDX-License-Identifier: MIT
 
 [server]
-pid_file = "/var/tmp/logranger.pid"
-
-[listener]
-type = "tcp"
+pid_file = "/var/run/logranger.pid"
