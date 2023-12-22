@@ -137,7 +137,6 @@ func (s *Server) HandleConnection(c *Connection) {
 		if err := c.conn.Close(); err != nil {
 			s.log.Error("failed to close connection", LogErrKey, err)
 		}
-
 	}()
 
 ReadLoop:
