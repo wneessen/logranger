@@ -35,6 +35,8 @@ type Server struct {
 	log *slog.Logger
 	// parser is a parsesyslog.Parser
 	parser parsesyslog.Parser
+	// ruleset is a pointer to the ruleset
+	ruleset *Ruleset
 	// wg is a sync.WaitGroup
 	wg sync.WaitGroup
 }
@@ -55,11 +57,22 @@ func (s *Server) Run() error {
 	if err != nil {
 		return err
 	}
+
 	p, err := parsesyslog.New(s.conf.internal.ParserType)
 	if err != nil {
 		return fmt.Errorf("failed to initialize syslog parser: %w", err)
 	}
 	s.parser = p
+
+	rs, err := NewRuleset(s.conf)
+	if err != nil {
+		return fmt.Errorf("failed to read ruleset: %w", err)
+	}
+	s.ruleset = rs
+	for _, r := range rs.Rule {
+		s.log.Debug("found rule", slog.String("ID", r.ID))
+	}
+
 	return s.RunWithListener(l)
 }
 
@@ -159,7 +172,8 @@ ReadLoop:
 		s.log.Debug("log message successfully received",
 			slog.String("message", lm.Message.String()),
 			slog.String("facility", lm.Facility.String()),
-			slog.String("severity", lm.Severity.String()))
+			slog.String("severity", lm.Severity.String()),
+			slog.Time("server_time", lm.Timestamp))
 	}
 }
 

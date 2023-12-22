@@ -20,7 +20,8 @@ import (
 type Config struct {
 	// Server holds server specific configuration values
 	Server struct {
-		PIDFile string `fig:"pid_file" default:"/var/run/logranger.pid"`
+		PIDFile  string `fig:"pid_file" default:"/var/run/logranger.pid"`
+		RuleFile string `fig:"rule_file" default:"etc/logranger.rules.toml"`
 	}
 	Listener struct {
 		ListenerUnix struct {
