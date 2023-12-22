@@ -58,4 +58,5 @@ fabric.properties
 
 # local confi files
 etc/*.local.toml
+etc/*.local.*.toml
 /.env
