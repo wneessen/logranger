@@ -7,8 +7,13 @@ package logranger
 import (
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/kkyr/fig"
+	"github.com/wneessen/go-parsesyslog"
+	"github.com/wneessen/go-parsesyslog/rfc3164"
+	"github.com/wneessen/go-parsesyslog/rfc5424"
 )
 
 // Config holds all the global configuration settings that are parsed by fig
@@ -34,8 +39,16 @@ type Config struct {
 		Type ListenerType `fig:"type" default:"unix"`
 	} `fig:"listener"`
 	Log struct {
-		Level string `fig:"level" default:"info"`
+		Level    string `fig:"level" default:"info"`
+		Extended bool   `fig:"extended"`
 	} `fig:"log"`
+	Parser struct {
+		Type    string        `fig:"type" validate:"required"`
+		Timeout time.Duration `fig:"timeout" default:"500ms"`
+	}
+	internal struct {
+		ParserType parsesyslog.ParserType
+	}
 }
 
 // NewConfig creates a new instance of the Config object by reading and loading
@@ -51,6 +64,15 @@ func NewConfig(p, f string) (*Config, error) {
 
 	if err := fig.Load(&co, fig.Dirs(p), fig.File(f), fig.UseEnv("logranger")); err != nil {
 		return &co, fmt.Errorf("failed to load config: %w", err)
+	}
+
+	switch {
+	case strings.EqualFold(co.Parser.Type, "rfc3164"):
+		co.internal.ParserType = rfc3164.Type
+	case strings.EqualFold(co.Parser.Type, "rfc5424"):
+		co.internal.ParserType = rfc5424.Type
+	default:
+		return nil, fmt.Errorf("unknown parser type: %s", co.Parser.Type)
 	}
 
 	return &co, nil

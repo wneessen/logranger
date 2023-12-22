@@ -5,16 +5,18 @@
 package logranger
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/wneessen/go-parsesyslog"
 	_ "github.com/wneessen/go-parsesyslog/rfc3164"
-	"github.com/wneessen/go-parsesyslog/rfc5424"
 	_ "github.com/wneessen/go-parsesyslog/rfc5424"
 )
 
@@ -31,7 +33,8 @@ type Server struct {
 	listener net.Listener
 	// log is a pointer to the slog.Logger
 	log *slog.Logger
-
+	// parser is a parsesyslog.Parser
+	parser parsesyslog.Parser
 	// wg is a sync.WaitGroup
 	wg sync.WaitGroup
 }
@@ -52,6 +55,11 @@ func (s *Server) Run() error {
 	if err != nil {
 		return err
 	}
+	p, err := parsesyslog.New(s.conf.internal.ParserType)
+	if err != nil {
+		return fmt.Errorf("failed to initalize syslog parser: %w", err)
+	}
+	s.parser = p
 	return s.RunWithListener(l)
 }
 
@@ -87,6 +95,7 @@ func (s *Server) RunWithListener(l net.Listener) error {
 	return nil
 }
 
+// Listen handles incoming connections and processes log messages.
 func (s *Server) Listen() {
 	defer s.wg.Done()
 	s.log.Info("listening for new connections", slog.String("listen_addr", s.listener.Addr().String()))
@@ -96,31 +105,63 @@ func (s *Server) Listen() {
 			s.log.Error("failed to accept new connection", LogErrKey, err)
 			continue
 		}
-		s.log.Debug("accepted new connection", slog.String("remote_addr", c.RemoteAddr().String()))
+		s.log.Debug("accepted new connection",
+			slog.String("remote_addr", c.RemoteAddr().String()))
 		conn := NewConnection(c)
 		s.wg.Add(1)
 		go func(co *Connection) {
-			s.HandleConnection(co)
+			err = co.conn.SetDeadline(time.Now().Add(s.conf.Parser.Timeout))
+			switch {
+			case err == nil:
+				s.HandleConnection(co)
+			default:
+				s.log.Error("failed to set processing deadline", LogErrKey, err,
+					slog.Duration("timeout", s.conf.Parser.Timeout))
+			}
 			s.wg.Done()
 		}(conn)
 	}
 }
 
+// HandleConnection handles a single connection by parsing and processing log messages.
+// It logs debug information about the connection and measures the processing time.
+// It closes the connection when done, and logs any error encountered during the process.
 func (s *Server) HandleConnection(c *Connection) {
+	b := time.Now()
 	s.log.Debug("handling connection")
-	defer c.conn.Close()
-	pa, err := parsesyslog.New(rfc5424.Type)
-	if err != nil {
-		s.log.Error("failed to initialize logger", LogErrKey, err)
-		return
-	}
-	lm, err := pa.ParseReader(c.rb)
-	if err != nil {
-		s.log.Error("failed to parse message", LogErrKey, err)
-		return
-	}
-	s.log.Info("log message received", slog.String("message", lm.Message.String()))
+	defer func() {
+		if err := c.conn.Close(); err != nil {
+			s.log.Error("failed to close connection", LogErrKey, err)
+		}
+	}()
 
+	lm, err := s.parser.ParseReader(c.rb)
+	if err != nil {
+		var ne *net.OpError
+		switch {
+		case errors.As(err, &ne):
+			if s.conf.Log.Extended {
+				s.log.Error("network error while processing message", LogErrKey,
+					ne.Error())
+			}
+			return
+		case errors.Is(err, io.EOF):
+			if s.conf.Log.Extended {
+				s.log.Error("message could not be processed", LogErrKey,
+					"EOF received")
+			}
+			return
+		default:
+			s.log.Error("failed to parse message", LogErrKey, err,
+				slog.String("parser_type", s.conf.Parser.Type))
+			return
+		}
+	}
+	s.log.Debug("log message successfully received",
+		slog.String("message", lm.Message.String()),
+		slog.String("facility", lm.Facility.String()),
+		slog.String("severity", lm.Severity.String()),
+		slog.String("processing_time", time.Since(b).String()))
 }
 
 // setLogLevel sets the log level based on the value of `s.conf.Log.Level`.
