@@ -45,7 +45,7 @@ type Config struct {
 	Parser struct {
 		Type    string        `fig:"type" validate:"required"`
 		Timeout time.Duration `fig:"timeout" default:"500ms"`
-	}
+	} `fig:"parser"`
 	internal struct {
 		ParserType parsesyslog.ParserType
 	}
