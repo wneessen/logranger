@@ -11,6 +11,11 @@ import (
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/wneessen/go-parsesyslog"
+	_ "github.com/wneessen/go-parsesyslog/rfc3164"
+	"github.com/wneessen/go-parsesyslog/rfc5424"
+	_ "github.com/wneessen/go-parsesyslog/rfc5424"
 )
 
 const (
@@ -63,7 +68,10 @@ func (s *Server) RunWithListener(l net.Listener) error {
 		s.log.Error("failed to create PID file", LogErrKey, err)
 		os.Exit(1)
 	}
-	_, err = pf.WriteString(fmt.Sprintf("%d", os.Getpid()))
+	pid := os.Getpid()
+	s.log.Debug("creating PID file", slog.String("pid_file", pf.Name()),
+		slog.Int("pid", pid))
+	_, err = pf.WriteString(fmt.Sprintf("%d", pid))
 	if err != nil {
 		s.log.Error("failed to write PID to PID file", LogErrKey, err)
 		_ = pf.Close()
@@ -74,8 +82,45 @@ func (s *Server) RunWithListener(l net.Listener) error {
 
 	// Listen for connections
 	s.wg.Add(1)
+	go s.Listen()
 
 	return nil
+}
+
+func (s *Server) Listen() {
+	defer s.wg.Done()
+	s.log.Info("listening for new connections", slog.String("listen_addr", s.listener.Addr().String()))
+	for {
+		c, err := s.listener.Accept()
+		if err != nil {
+			s.log.Error("failed to accept new connection", LogErrKey, err)
+			continue
+		}
+		s.log.Debug("accepted new connection", slog.String("remote_addr", c.RemoteAddr().String()))
+		conn := NewConnection(c)
+		s.wg.Add(1)
+		go func(co *Connection) {
+			s.HandleConnection(co)
+			s.wg.Done()
+		}(conn)
+	}
+}
+
+func (s *Server) HandleConnection(c *Connection) {
+	s.log.Debug("handling connection")
+	defer c.conn.Close()
+	pa, err := parsesyslog.New(rfc5424.Type)
+	if err != nil {
+		s.log.Error("failed to initialize logger", LogErrKey, err)
+		return
+	}
+	lm, err := pa.ParseReader(c.rb)
+	if err != nil {
+		s.log.Error("failed to parse message", LogErrKey, err)
+		return
+	}
+	s.log.Info("log message received", slog.String("message", lm.Message.String()))
+
 }
 
 // setLogLevel sets the log level based on the value of `s.conf.Log.Level`.
