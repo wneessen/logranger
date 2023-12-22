@@ -110,14 +110,7 @@ func (s *Server) Listen() {
 		conn := NewConnection(c)
 		s.wg.Add(1)
 		go func(co *Connection) {
-			err = co.conn.SetDeadline(time.Now().Add(s.conf.Parser.Timeout))
-			switch {
-			case err == nil:
-				s.HandleConnection(co)
-			default:
-				s.log.Error("failed to set processing deadline", LogErrKey, err,
-					slog.Duration("timeout", s.conf.Parser.Timeout))
-			}
+			s.HandleConnection(co)
 			s.wg.Done()
 		}(conn)
 	}
@@ -127,41 +120,47 @@ func (s *Server) Listen() {
 // It logs debug information about the connection and measures the processing time.
 // It closes the connection when done, and logs any error encountered during the process.
 func (s *Server) HandleConnection(c *Connection) {
-	b := time.Now()
-	s.log.Debug("handling connection")
 	defer func() {
 		if err := c.conn.Close(); err != nil {
 			s.log.Error("failed to close connection", LogErrKey, err)
 		}
+
 	}()
 
-	lm, err := s.parser.ParseReader(c.rb)
-	if err != nil {
-		var ne *net.OpError
-		switch {
-		case errors.As(err, &ne):
-			if s.conf.Log.Extended {
-				s.log.Error("network error while processing message", LogErrKey,
-					ne.Error())
-			}
-			return
-		case errors.Is(err, io.EOF):
-			if s.conf.Log.Extended {
-				s.log.Error("message could not be processed", LogErrKey,
-					"EOF received")
-			}
-			return
-		default:
-			s.log.Error("failed to parse message", LogErrKey, err,
-				slog.String("parser_type", s.conf.Parser.Type))
+ReadLoop:
+	for {
+		if err := c.conn.SetDeadline(time.Now().Add(s.conf.Parser.Timeout)); err != nil {
+			s.log.Error("failed to set processing deadline", LogErrKey, err,
+				slog.Duration("timeout", s.conf.Parser.Timeout))
 			return
 		}
+		lm, err := s.parser.ParseReader(c.rb)
+		if err != nil {
+			var ne *net.OpError
+			switch {
+			case errors.As(err, &ne):
+				if s.conf.Log.Extended {
+					s.log.Error("network error while processing message", LogErrKey,
+						ne.Error())
+				}
+				return
+			case errors.Is(err, io.EOF):
+				if s.conf.Log.Extended {
+					s.log.Error("message could not be processed", LogErrKey,
+						"EOF received")
+				}
+				return
+			default:
+				s.log.Error("failed to parse message", LogErrKey, err,
+					slog.String("parser_type", s.conf.Parser.Type))
+				continue ReadLoop
+			}
+		}
+		s.log.Debug("log message successfully received",
+			slog.String("message", lm.Message.String()),
+			slog.String("facility", lm.Facility.String()),
+			slog.String("severity", lm.Severity.String()))
 	}
-	s.log.Debug("log message successfully received",
-		slog.String("message", lm.Message.String()),
-		slog.String("facility", lm.Facility.String()),
-		slog.String("severity", lm.Severity.String()),
-		slog.String("processing_time", time.Since(b).String()))
 }
 
 // setLogLevel sets the log level based on the value of `s.conf.Log.Level`.
