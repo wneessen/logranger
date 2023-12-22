@@ -16,11 +16,17 @@ import (
 
 type Ruleset struct {
 	Rule []struct {
-		ID     string         `fig:"id" validate:"required"`
-		Regexp *regexp.Regexp `fig:"regexp" validate:"required"`
+		ID        string         `fig:"id" validate:"required"`
+		Regexp    *regexp.Regexp `fig:"regexp" validate:"required"`
+		HostMatch *string        `fig:"host_match"`
 	} `fig:"rule"`
 }
 
+// NewRuleset initializes a new Ruleset based on the provided Config.
+// It reads the rule file specified in the Config, validates the file's
+// existence, and loads the Ruleset using the fig library.
+// It checks for duplicate rules and returns an error if any duplicates are found.
+// If all operations are successful, it returns the created Ruleset and no error.
 func NewRuleset(c *Config) (*Ruleset, error) {
 	rs := &Ruleset{}
 	p := filepath.Dir(c.Server.RuleFile)

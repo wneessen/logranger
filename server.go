@@ -71,6 +71,15 @@ func (s *Server) Run() error {
 	s.ruleset = rs
 	for _, r := range rs.Rule {
 		s.log.Debug("found rule", slog.String("ID", r.ID))
+		if r.HostMatch != nil {
+			s.log.Debug("host match enabled", slog.String("host", *r.HostMatch))
+		}
+		if r.Regexp != nil {
+			foo := r.Regexp.FindAllStringSubmatch("test_foo23", -1)
+			if len(foo) > 0 {
+				s.log.Debug("matched", slog.Any("groups", foo))
+			}
+		}
 	}
 
 	return s.RunWithListener(l)
