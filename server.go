@@ -57,7 +57,7 @@ func (s *Server) Run() error {
 	}
 	p, err := parsesyslog.New(s.conf.internal.ParserType)
 	if err != nil {
-		return fmt.Errorf("failed to initalize syslog parser: %w", err)
+		return fmt.Errorf("failed to initialize syslog parser: %w", err)
 	}
 	s.parser = p
 	return s.RunWithListener(l)

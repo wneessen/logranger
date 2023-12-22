@@ -54,7 +54,7 @@ func NewListener(c *Config) (net.Listener, error) {
 		return nil, fmt.Errorf("failed to initialize listener: unknown listener type in config")
 	}
 	if lerr != nil {
-		return nil, fmt.Errorf("failed to initalize listener: %w", lerr)
+		return nil, fmt.Errorf("failed to initialize listener: %w", lerr)
 	}
 	return l, nil
 }
