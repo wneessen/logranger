@@ -6,6 +6,8 @@ package logranger
 
 import (
 	"bufio"
+	"fmt"
+	"math/rand"
 	"net"
 )
 
@@ -23,9 +25,15 @@ type Connection struct {
 func NewConnection(nc net.Conn) *Connection {
 	c := &Connection{
 		conn: nc,
-		id:   "foo",
+		id:   NewConnectionID(),
 		rb:   bufio.NewReader(nc),
 		wb:   bufio.NewWriter(nc),
 	}
 	return c
+}
+
+// NewConnectionID generates a new unique message ID using a random number generator
+// and returns it as a hexadecimal string.
+func NewConnectionID() string {
+	return fmt.Sprintf("%x", rand.Int63())
 }

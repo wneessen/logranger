@@ -14,12 +14,17 @@ import (
 	"github.com/kkyr/fig"
 )
 
+// Ruleset represents a collection of rules.
 type Ruleset struct {
-	Rule []struct {
-		ID        string         `fig:"id" validate:"required"`
-		Regexp    *regexp.Regexp `fig:"regexp" validate:"required"`
-		HostMatch *string        `fig:"host_match"`
-	} `fig:"rule"`
+	Rule []Rule `fig:"rule"`
+}
+
+// Rule represents a rule with its properties.
+type Rule struct {
+	ID        string         `fig:"id" validate:"required"`
+	Regexp    *regexp.Regexp `fig:"regexp" validate:"required"`
+	HostMatch *regexp.Regexp `fig:"host_match"`
+	Actions   map[string]any `fig:"actions"`
 }
 
 // NewRuleset initializes a new Ruleset based on the provided Config.

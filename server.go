@@ -18,6 +18,9 @@ import (
 	"github.com/wneessen/go-parsesyslog"
 	_ "github.com/wneessen/go-parsesyslog/rfc3164"
 	_ "github.com/wneessen/go-parsesyslog/rfc5424"
+
+	"github.com/wneessen/logranger/plugins/actions"
+	_ "github.com/wneessen/logranger/plugins/actions/all"
 )
 
 const (
@@ -42,12 +45,28 @@ type Server struct {
 }
 
 // New creates a new instance of Server based on the provided Config
-func New(c *Config) *Server {
+func New(c *Config) (*Server, error) {
 	s := &Server{
 		conf: c,
 	}
+
 	s.setLogLevel()
-	return s
+
+	if err := s.setRules(); err != nil {
+		return s, err
+	}
+
+	p, err := parsesyslog.New(s.conf.internal.ParserType)
+	if err != nil {
+		return s, fmt.Errorf("failed to initialize syslog parser: %w", err)
+	}
+	s.parser = p
+
+	if len(actions.Actions) <= 0 {
+		return s, fmt.Errorf("no action plugins found/configured")
+	}
+
+	return s, nil
 }
 
 // Run starts the logranger Server by creating a new listener using the NewListener
@@ -57,31 +76,6 @@ func (s *Server) Run() error {
 	if err != nil {
 		return err
 	}
-
-	p, err := parsesyslog.New(s.conf.internal.ParserType)
-	if err != nil {
-		return fmt.Errorf("failed to initialize syslog parser: %w", err)
-	}
-	s.parser = p
-
-	rs, err := NewRuleset(s.conf)
-	if err != nil {
-		return fmt.Errorf("failed to read ruleset: %w", err)
-	}
-	s.ruleset = rs
-	for _, r := range rs.Rule {
-		s.log.Debug("found rule", slog.String("ID", r.ID))
-		if r.HostMatch != nil {
-			s.log.Debug("host match enabled", slog.String("host", *r.HostMatch))
-		}
-		if r.Regexp != nil {
-			foo := r.Regexp.FindAllStringSubmatch("test_foo23", -1)
-			if len(foo) > 0 {
-				s.log.Debug("matched", slog.Any("groups", foo))
-			}
-		}
-	}
-
 	return s.RunWithListener(l)
 }
 
@@ -177,12 +171,32 @@ ReadLoop:
 				continue ReadLoop
 			}
 		}
-		s.log.Debug("log message successfully received",
-			slog.String("message", lm.Message.String()),
-			slog.String("facility", lm.Facility.String()),
-			slog.String("severity", lm.Severity.String()),
-			slog.Time("server_time", lm.Timestamp))
+		if err = s.processMessage(lm); err != nil {
+			s.log.Error("failed to process actions on log message", LogErrKey, err)
+		}
 	}
+}
+
+func (s *Server) processMessage(lm parsesyslog.LogMsg) error {
+	if s.ruleset != nil {
+		for _, r := range s.ruleset.Rule {
+			if !r.Regexp.MatchString(lm.Message.String()) {
+				continue
+			}
+			if r.HostMatch != nil && !r.HostMatch.MatchString(lm.Hostname) {
+				continue
+			}
+			mg := r.Regexp.FindStringSubmatch(lm.Message.String())
+			for n, a := range actions.Actions {
+				s.log.Debug("trying to execute action", slog.String("action_name", n))
+				if err := a.Process(lm, mg, r.Actions); err != nil {
+					s.log.Error("failed to process action", LogErrKey, err,
+						slog.String("action", n), slog.String("rule_id", r.ID))
+				}
+			}
+		}
+	}
+	return nil
 }
 
 // setLogLevel sets the log level based on the value of `s.conf.Log.Level`.
@@ -208,4 +222,17 @@ func (s *Server) setLogLevel() {
 	}
 	lh := slog.NewJSONHandler(os.Stdout, &lo)
 	s.log = slog.New(lh).With(slog.String("context", "logranger"))
+}
+
+// setRules initializes/updates the ruleset for the logranger Server by
+// calling NewRuleset with the config and assigns the returned ruleset
+// to the Server's ruleset field.
+// It returns an error if there is a failure in reading or loading the ruleset.
+func (s *Server) setRules() error {
+	rs, err := NewRuleset(s.conf)
+	if err != nil {
+		return fmt.Errorf("failed to read ruleset: %w", err)
+	}
+	s.ruleset = rs
+	return nil
 }

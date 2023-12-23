@@ -35,10 +35,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	s := logranger.New(c)
+	s, err := logranger.New(c)
+	if err != nil {
+		l.Error("failed to create new server", LogErrKey, err)
+		os.Exit(1)
+	}
+
 	go func() {
 		if err = s.Run(); err != nil {
-			l.Error("failed to start logranger: %s", LogErrKey, err)
+			l.Error("failed to start logranger", LogErrKey, err)
 			os.Exit(1)
 		}
 	}()
