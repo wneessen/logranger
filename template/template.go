@@ -5,12 +5,30 @@
 package template
 
 import (
+	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/base64"
 	"fmt"
+	"hash"
+	"io"
 	"strings"
 	"text/template"
 	"time"
 
 	"github.com/wneessen/go-parsesyslog"
+)
+
+// SHAAlgo is a enum-like type wrapper representing a SHA algorithm
+type SHAAlgo uint
+
+const (
+	// SHA1 is a constant of type SHAAlgo, representing the SHA-1 algorithm.
+	SHA1 SHAAlgo = iota
+	// SHA256 is a constant of type SHAAlgo, representing the SHA-256 algorithm.
+	SHA256
+	// SHA512 is a constant of type SHAAlgo, representing the SHA-512 algorithm.
+	SHA512
 )
 
 // FuncMap represents a mapping of function names to their corresponding
@@ -60,7 +78,12 @@ func Compile(lm parsesyslog.LogMsg, mg []string, ot string) (string, error) {
 func NewTemplateFuncMap() template.FuncMap {
 	fm := FuncMap{}
 	return template.FuncMap{
-		"_ToLower": fm.ToLower,
+		"_ToLower":  fm.ToLower,
+		"_ToUpper":  fm.ToUpper,
+		"_ToBase64": fm.ToBase64,
+		"_ToSHA1":   fm.ToSHA1,
+		"_ToSHA256": fm.ToSHA256,
+		"_ToSHA512": fm.ToSHA512,
 	}
 }
 
@@ -72,4 +95,48 @@ func (*FuncMap) ToLower(s string) string {
 // ToUpper returns a given string as upper-case representation
 func (*FuncMap) ToUpper(s string) string {
 	return strings.ToUpper(s)
+}
+
+// ToBase64 returns the base64 encoding of a given string.
+func (*FuncMap) ToBase64(s string) string {
+	return base64.RawStdEncoding.EncodeToString([]byte(s))
+}
+
+// ToSHA1 returns the SHA-1 hash of the given string
+func (*FuncMap) ToSHA1(s string) string {
+	return toSHA(s, SHA1)
+}
+
+// ToSHA256 returns the SHA-256 hash of the given string
+func (*FuncMap) ToSHA256(s string) string {
+	return toSHA(s, SHA256)
+}
+
+// ToSHA512 returns the SHA-512 hash of the given string
+func (*FuncMap) ToSHA512(s string) string {
+	return toSHA(s, SHA512)
+}
+
+// toSHA is a function that converts a string to a SHA hash.
+//
+// The function takes two parameters: a string 's' and a 'sa' of
+// type SHAAlgo which defines the SHA algorithm to be used.
+func toSHA(s string, sa SHAAlgo) string {
+	var h hash.Hash
+	switch sa {
+	case SHA1:
+		h = sha1.New()
+	case SHA256:
+		h = sha256.New()
+	case SHA512:
+		h = sha512.New()
+	default:
+		return ""
+	}
+
+	_, err := io.WriteString(h, s)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("%x", h.Sum(nil))
 }
