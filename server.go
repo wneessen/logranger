@@ -177,6 +177,12 @@ ReadLoop:
 	}
 }
 
+// processMessage processes a log message by matching it against the ruleset and executing
+// the corresponding actions if a match is found. It takes a parsesyslog.LogMsg as input
+// and returns an error if there was an error while processing the actions.
+// The method first checks if the ruleset is not nil. If it is nil, no actions will be
+// executed. For each rule in the ruleset, it checks if the log message matches the
+// rule's regular expression.
 func (s *Server) processMessage(lm parsesyslog.LogMsg) error {
 	if s.ruleset != nil {
 		for _, r := range s.ruleset.Rule {
@@ -188,14 +194,23 @@ func (s *Server) processMessage(lm parsesyslog.LogMsg) error {
 			}
 			mg := r.Regexp.FindStringSubmatch(lm.Message.String())
 			for n, a := range actions.Actions {
-				s.log.Debug("trying to execute action", slog.String("action_name", n))
+				bt := time.Now()
 				if err := a.Config(r.Actions); err != nil {
 					s.log.Error("failed to config action", LogErrKey, err,
 						slog.String("action", n), slog.String("rule_id", r.ID))
 					continue
 				}
+				s.log.Debug("log message matches rule, executing action",
+					slog.String("action", n), slog.String("rule_id", r.ID))
 				if err := a.Process(lm, mg); err != nil {
 					s.log.Error("failed to process action", LogErrKey, err,
+						slog.String("action", n), slog.String("rule_id", r.ID))
+				}
+				if s.conf.Log.Extended {
+					pt := time.Since(bt)
+					s.log.Debug("action processing benchmark",
+						slog.Duration("processing_time", pt),
+						slog.String("processing_time_human", pt.String()),
 						slog.String("action", n), slog.String("rule_id", r.ID))
 				}
 			}
