@@ -14,5 +14,6 @@ import (
 // The Process method takes a log message, a slice of match groups, and a
 // configuration map, and returns an error if any occurs during processing.
 type Action interface {
-	Process(logmessage parsesyslog.LogMsg, matchgroup []string, confmap map[string]any) error
+	Config(confmap map[string]any) error
+	Process(logmessage parsesyslog.LogMsg, matchgroup []string) error
 }

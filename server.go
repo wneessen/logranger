@@ -189,7 +189,11 @@ func (s *Server) processMessage(lm parsesyslog.LogMsg) error {
 			mg := r.Regexp.FindStringSubmatch(lm.Message.String())
 			for n, a := range actions.Actions {
 				s.log.Debug("trying to execute action", slog.String("action_name", n))
-				if err := a.Process(lm, mg, r.Actions); err != nil {
+				if err := a.Config(r.Actions); err != nil {
+					s.log.Error("failed to config action", LogErrKey, err,
+						slog.String("action", n), slog.String("rule_id", r.ID))
+				}
+				if err := a.Process(lm, mg); err != nil {
 					s.log.Error("failed to process action", LogErrKey, err,
 						slog.String("action", n), slog.String("rule_id", r.ID))
 				}
