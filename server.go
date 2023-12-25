@@ -192,6 +192,7 @@ func (s *Server) processMessage(lm parsesyslog.LogMsg) error {
 				if err := a.Config(r.Actions); err != nil {
 					s.log.Error("failed to config action", LogErrKey, err,
 						slog.String("action", n), slog.String("rule_id", r.ID))
+					continue
 				}
 				if err := a.Process(lm, mg); err != nil {
 					s.log.Error("failed to process action", LogErrKey, err,
