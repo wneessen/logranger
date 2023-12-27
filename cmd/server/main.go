@@ -58,20 +58,12 @@ func main() {
 			os.Exit(0)
 		}
 		if rc == syscall.SIGHUP {
-			l.Info(`received "SIGHUP" signal - reloading rules...`)
-			/*
-				_, nr, err := config.New(config.WithConfFile(*cf), config.WithRulesFile(*rf))
-				if err != nil {
-					s.Log.Errorf("%s - skipping reload", err)
-					continue
-				}
-				if err := nr.CheckRegEx(); err != nil {
-					s.Log.Errorf("ruleset validation failed for new ruleset - skipping reload: %s", err)
-					continue
-				}
-				s.SetRules(nr)
-
-			*/
+			l.Info(`received signal`,
+				slog.String("signal", "SIGHUP"),
+				slog.String("action", "reloading config/ruleset"))
+			if err = s.ReloadConfig(p, f); err != nil {
+				l.Error("failed to reload config", LogErrKey, err)
+			}
 		}
 	}
 }

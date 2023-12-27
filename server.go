@@ -255,3 +255,22 @@ func (s *Server) setRules() error {
 	s.ruleset = rs
 	return nil
 }
+
+// ReloadConfig reloads the configuration of the Server with the specified
+// path and filename.
+// It creates a new Config using the NewConfig method and updates the Server's
+// conf field. It also reloads the configured Ruleset.
+// If an error occurs while reloading the configuration, an error is returned.
+func (s *Server) ReloadConfig(p, f string) error {
+	c, err := NewConfig(p, f)
+	if err != nil {
+		return fmt.Errorf("failed to reload config: %w", err)
+	}
+	s.conf = c
+
+	if err := s.setRules(); err != nil {
+		return fmt.Errorf("failed to reload ruleset: %w", err)
+	}
+
+	return nil
+}
