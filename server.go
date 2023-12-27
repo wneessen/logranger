@@ -171,9 +171,8 @@ ReadLoop:
 				continue ReadLoop
 			}
 		}
-		if err = s.processMessage(lm); err != nil {
-			s.log.Error("failed to process actions on log message", LogErrKey, err)
-		}
+		s.wg.Add(1)
+		go s.processMessage(lm)
 	}
 }
 
@@ -183,7 +182,8 @@ ReadLoop:
 // The method first checks if the ruleset is not nil. If it is nil, no actions will be
 // executed. For each rule in the ruleset, it checks if the log message matches the
 // rule's regular expression.
-func (s *Server) processMessage(lm parsesyslog.LogMsg) error {
+func (s *Server) processMessage(lm parsesyslog.LogMsg) {
+	defer s.wg.Done()
 	if s.ruleset != nil {
 		for _, r := range s.ruleset.Rule {
 			if !r.Regexp.MatchString(lm.Message.String()) {
@@ -216,7 +216,6 @@ func (s *Server) processMessage(lm parsesyslog.LogMsg) error {
 			}
 		}
 	}
-	return nil
 }
 
 // setLogLevel sets the log level based on the value of `s.conf.Log.Level`.
