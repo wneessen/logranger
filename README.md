@@ -50,4 +50,5 @@ repository. We appreciate any feedback or suggestions for improving Logranger.
 
 ## Mirror
 
-Please note that the repository on Github is just a mirror of [https://src.neessen.cloud/wneessen/logranger](https://src.neessen.cloud/wneessen/logranger) for ease of access and reachability.
+Please note that the repository on Github is just a mirror of 
+[https://src.neessen.cloud/wneessen/logranger](https://src.neessen.cloud/wneessen/logranger) for ease of access and reachability.
