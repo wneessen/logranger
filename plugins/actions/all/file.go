@@ -4,4 +4,4 @@
 
 package all
 
-import _ "github.com/wneessen/logranger/plugins/actions/file" // register plugin
+import _ "src.neessen.cloud/wneessen/logranger/plugins/actions/file" // register plugin

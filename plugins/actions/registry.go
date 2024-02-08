@@ -5,7 +5,7 @@
 package actions
 
 import (
-	"github.com/wneessen/logranger/plugins"
+	"src.neessen.cloud/wneessen/logranger/plugins"
 )
 
 // Actions is a variable that represents a map of string keys to Action values. The keys are used to identify different actions, and the corresponding values are the functions that define

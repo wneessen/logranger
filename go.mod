@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-module github.com/wneessen/logranger
+module src.neessen.cloud/wneessen/logranger
 
 go 1.21
 
