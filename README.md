@@ -45,5 +45,9 @@ Logranger is released under the [MIT License](LICENSE).
 
 ## Support
 
-If you encounter any problems while using Logranger, please create an issue in this 
+If you encounter any problems while using Logranger, please [create an issue](https://src.neessen.cloud/wneessen/logranger/issues) in this 
 repository. We appreciate any feedback or suggestions for improving Logranger.
+
+## Mirror
+
+Please note that the repository on Github is just a mirror of [https://src.neessen.cloud/wneessen/logranger](https://src.neessen.cloud/wneessen/logranger) for ease of access and reachability.
