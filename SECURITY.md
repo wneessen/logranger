@@ -8,9 +8,9 @@ SPDX-License-Identifier: CC0-1.0
 
 ## Reporting a Vulnerability
 
-To report (possible) security issues in js-mailer, please either send a mail to 
+To report (possible) security issues in logranger, please either send a mail to 
 [security@neessen.dev](mailto:security@neessen.dev) or use Github's 
-[private reporting feature](https://github.com/wneessen/js-mailer/security/advisories/new).
+[private reporting feature](https://github.com/wneessen/logranger/security/advisories/new).
 Reports are always welcome. Even if you are not 100% certain that a specific issue you found
 counts as a security issue, we'd love to hear the details, so we can figure out together if
 the issue in question needds to be addressed.
