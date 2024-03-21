@@ -56,25 +56,25 @@ type Config struct {
 // configuration values. It takes in the file path and file name of the configuration
 // file as parameters. It returns a pointer to the Config object and an error if
 // there was a problem reading or loading the configuration.
-func NewConfig(p, f string) (*Config, error) {
-	co := Config{}
-	_, err := os.Stat(fmt.Sprintf("%s/%s", p, f))
+func NewConfig(path, file string) (*Config, error) {
+	config := Config{}
+	_, err := os.Stat(fmt.Sprintf("%s/%s", path, file))
 	if err != nil {
-		return &co, fmt.Errorf("failed to read config: %w", err)
+		return &config, fmt.Errorf("failed to read config: %w", err)
 	}
 
-	if err := fig.Load(&co, fig.Dirs(p), fig.File(f), fig.UseEnv("logranger")); err != nil {
-		return &co, fmt.Errorf("failed to load config: %w", err)
+	if err := fig.Load(&config, fig.Dirs(path), fig.File(file), fig.UseEnv("logranger")); err != nil {
+		return &config, fmt.Errorf("failed to load config: %w", err)
 	}
 
 	switch {
-	case strings.EqualFold(co.Parser.Type, "rfc3164"):
-		co.internal.ParserType = rfc3164.Type
-	case strings.EqualFold(co.Parser.Type, "rfc5424"):
-		co.internal.ParserType = rfc5424.Type
+	case strings.EqualFold(config.Parser.Type, "rfc3164"):
+		config.internal.ParserType = rfc3164.Type
+	case strings.EqualFold(config.Parser.Type, "rfc5424"):
+		config.internal.ParserType = rfc5424.Type
 	default:
-		return nil, fmt.Errorf("unknown parser type: %s", co.Parser.Type)
+		return nil, fmt.Errorf("unknown parser type: %s", config.Parser.Type)
 	}
 
-	return &co, nil
+	return &config, nil
 }

@@ -45,62 +45,62 @@ type Server struct {
 }
 
 // New creates a new instance of Server based on the provided Config
-func New(c *Config) (*Server, error) {
-	s := &Server{
-		conf: c,
+func New(config *Config) (*Server, error) {
+	server := &Server{
+		conf: config,
 	}
 
-	s.setLogLevel()
+	server.setLogLevel()
 
-	if err := s.setRules(); err != nil {
-		return s, err
+	if err := server.setRules(); err != nil {
+		return server, err
 	}
 
-	p, err := parsesyslog.New(s.conf.internal.ParserType)
+	parser, err := parsesyslog.New(server.conf.internal.ParserType)
 	if err != nil {
-		return s, fmt.Errorf("failed to initialize syslog parser: %w", err)
+		return server, fmt.Errorf("failed to initialize syslog parser: %w", err)
 	}
-	s.parser = p
+	server.parser = parser
 
 	if len(actions.Actions) <= 0 {
-		return s, fmt.Errorf("no action plugins found/configured")
+		return server, fmt.Errorf("no action plugins found/configured")
 	}
 
-	return s, nil
+	return server, nil
 }
 
 // Run starts the logranger Server by creating a new listener using the NewListener
 // method and calling RunWithListener with the obtained listener.
 func (s *Server) Run() error {
-	l, err := NewListener(s.conf)
+	listener, err := NewListener(s.conf)
 	if err != nil {
 		return err
 	}
-	return s.RunWithListener(l)
+	return s.RunWithListener(listener)
 }
 
 // RunWithListener sets the listener for the server and performs some additional
 // tasks for initializing the server. It creates a PID file, writes the process ID
 // to the file, and listens for connections. It returns an error if any of the
 // initialization steps fail.
-func (s *Server) RunWithListener(l net.Listener) error {
-	s.listener = l
+func (s *Server) RunWithListener(listener net.Listener) error {
+	s.listener = listener
 
 	// Create PID file
-	pf, err := os.Create(s.conf.Server.PIDFile)
+	pidFile, err := os.Create(s.conf.Server.PIDFile)
 	if err != nil {
 		s.log.Error("failed to create PID file", LogErrKey, err)
 		os.Exit(1)
 	}
 	pid := os.Getpid()
-	s.log.Debug("creating PID file", slog.String("pid_file", pf.Name()),
+	s.log.Debug("creating PID file", slog.String("pid_file", pidFile.Name()),
 		slog.Int("pid", pid))
-	_, err = pf.WriteString(fmt.Sprintf("%d", pid))
+	_, err = pidFile.WriteString(fmt.Sprintf("%d", pid))
 	if err != nil {
 		s.log.Error("failed to write PID to PID file", LogErrKey, err)
-		_ = pf.Close()
+		_ = pidFile.Close()
 	}
-	if err = pf.Close(); err != nil {
+	if err = pidFile.Close(); err != nil {
 		s.log.Error("failed to close PID file", LogErrKey, err)
 	}
 
@@ -116,47 +116,47 @@ func (s *Server) Listen() {
 	defer s.wg.Done()
 	s.log.Info("listening for new connections", slog.String("listen_addr", s.listener.Addr().String()))
 	for {
-		c, err := s.listener.Accept()
+		acceptConn, err := s.listener.Accept()
 		if err != nil {
 			s.log.Error("failed to accept new connection", LogErrKey, err)
 			continue
 		}
 		s.log.Debug("accepted new connection",
-			slog.String("remote_addr", c.RemoteAddr().String()))
-		conn := NewConnection(c)
+			slog.String("remote_addr", acceptConn.RemoteAddr().String()))
+		connection := NewConnection(acceptConn)
 		s.wg.Add(1)
 		go func(co *Connection) {
 			s.HandleConnection(co)
 			s.wg.Done()
-		}(conn)
+		}(connection)
 	}
 }
 
 // HandleConnection handles a single connection by parsing and processing log messages.
 // It logs debug information about the connection and measures the processing time.
 // It closes the connection when done, and logs any error encountered during the process.
-func (s *Server) HandleConnection(c *Connection) {
+func (s *Server) HandleConnection(connection *Connection) {
 	defer func() {
-		if err := c.conn.Close(); err != nil {
+		if err := connection.conn.Close(); err != nil {
 			s.log.Error("failed to close connection", LogErrKey, err)
 		}
 	}()
 
 ReadLoop:
 	for {
-		if err := c.conn.SetDeadline(time.Now().Add(s.conf.Parser.Timeout)); err != nil {
+		if err := connection.conn.SetDeadline(time.Now().Add(s.conf.Parser.Timeout)); err != nil {
 			s.log.Error("failed to set processing deadline", LogErrKey, err,
 				slog.Duration("timeout", s.conf.Parser.Timeout))
 			return
 		}
-		lm, err := s.parser.ParseReader(c.rb)
+		logMessage, err := s.parser.ParseReader(connection.rb)
 		if err != nil {
-			var ne *net.OpError
+			var netErr *net.OpError
 			switch {
-			case errors.As(err, &ne):
+			case errors.As(err, &netErr):
 				if s.conf.Log.Extended {
 					s.log.Error("network error while processing message", LogErrKey,
-						ne.Error())
+						netErr.Error())
 				}
 				return
 			case errors.Is(err, io.EOF):
@@ -172,7 +172,7 @@ ReadLoop:
 			}
 		}
 		s.wg.Add(1)
-		go s.processMessage(lm)
+		go s.processMessage(logMessage)
 	}
 }
 
@@ -182,36 +182,36 @@ ReadLoop:
 // The method first checks if the ruleset is not nil. If it is nil, no actions will be
 // executed. For each rule in the ruleset, it checks if the log message matches the
 // rule's regular expression.
-func (s *Server) processMessage(lm parsesyslog.LogMsg) {
+func (s *Server) processMessage(logMessage parsesyslog.LogMsg) {
 	defer s.wg.Done()
 	if s.ruleset != nil {
-		for _, r := range s.ruleset.Rule {
-			if !r.Regexp.MatchString(lm.Message.String()) {
+		for _, rule := range s.ruleset.Rule {
+			if !rule.Regexp.MatchString(logMessage.Message.String()) {
 				continue
 			}
-			if r.HostMatch != nil && !r.HostMatch.MatchString(lm.Hostname) {
+			if rule.HostMatch != nil && !rule.HostMatch.MatchString(logMessage.Hostname) {
 				continue
 			}
-			mg := r.Regexp.FindStringSubmatch(lm.Message.String())
-			for n, a := range actions.Actions {
-				bt := time.Now()
-				if err := a.Config(r.Actions); err != nil {
+			matchGroup := rule.Regexp.FindStringSubmatch(logMessage.Message.String())
+			for name, action := range actions.Actions {
+				startTime := time.Now()
+				if err := action.Config(rule.Actions); err != nil {
 					s.log.Error("failed to config action", LogErrKey, err,
-						slog.String("action", n), slog.String("rule_id", r.ID))
+						slog.String("action", name), slog.String("rule_id", rule.ID))
 					continue
 				}
 				s.log.Debug("log message matches rule, executing action",
-					slog.String("action", n), slog.String("rule_id", r.ID))
-				if err := a.Process(lm, mg); err != nil {
+					slog.String("action", name), slog.String("rule_id", rule.ID))
+				if err := action.Process(logMessage, matchGroup); err != nil {
 					s.log.Error("failed to process action", LogErrKey, err,
-						slog.String("action", n), slog.String("rule_id", r.ID))
+						slog.String("action", name), slog.String("rule_id", rule.ID))
 				}
 				if s.conf.Log.Extended {
-					pt := time.Since(bt)
+					procTime := time.Since(startTime)
 					s.log.Debug("action processing benchmark",
-						slog.Duration("processing_time", pt),
-						slog.String("processing_time_human", pt.String()),
-						slog.String("action", n), slog.String("rule_id", r.ID))
+						slog.Duration("processing_time", procTime),
+						slog.String("processing_time_human", procTime.String()),
+						slog.String("action", name), slog.String("rule_id", rule.ID))
 				}
 			}
 		}
@@ -226,21 +226,21 @@ func (s *Server) processMessage(lm parsesyslog.LogMsg) {
 // Finally, it creates a new `slog.Logger` with the JSON handler and sets the `s.log` field
 // of the `Server` struct to the logger, with a context value of "logranger".
 func (s *Server) setLogLevel() {
-	lo := slog.HandlerOptions{}
+	logOpts := slog.HandlerOptions{}
 	switch strings.ToLower(s.conf.Log.Level) {
 	case "debug":
-		lo.Level = slog.LevelDebug
+		logOpts.Level = slog.LevelDebug
 	case "info":
-		lo.Level = slog.LevelInfo
+		logOpts.Level = slog.LevelInfo
 	case "warn":
-		lo.Level = slog.LevelWarn
+		logOpts.Level = slog.LevelWarn
 	case "error":
-		lo.Level = slog.LevelError
+		logOpts.Level = slog.LevelError
 	default:
-		lo.Level = slog.LevelInfo
+		logOpts.Level = slog.LevelInfo
 	}
-	lh := slog.NewJSONHandler(os.Stdout, &lo)
-	s.log = slog.New(lh).With(slog.String("context", "logranger"))
+	logHandler := slog.NewJSONHandler(os.Stdout, &logOpts)
+	s.log = slog.New(logHandler).With(slog.String("context", "logranger"))
 }
 
 // setRules initializes/updates the ruleset for the logranger Server by
@@ -248,11 +248,11 @@ func (s *Server) setLogLevel() {
 // to the Server's ruleset field.
 // It returns an error if there is a failure in reading or loading the ruleset.
 func (s *Server) setRules() error {
-	rs, err := NewRuleset(s.conf)
+	ruleset, err := NewRuleset(s.conf)
 	if err != nil {
 		return fmt.Errorf("failed to read ruleset: %w", err)
 	}
-	s.ruleset = rs
+	s.ruleset = ruleset
 	return nil
 }
 
@@ -261,12 +261,12 @@ func (s *Server) setRules() error {
 // It creates a new Config using the NewConfig method and updates the Server's
 // conf field. It also reloads the configured Ruleset.
 // If an error occurs while reloading the configuration, an error is returned.
-func (s *Server) ReloadConfig(p, f string) error {
-	c, err := NewConfig(p, f)
+func (s *Server) ReloadConfig(path, file string) error {
+	config, err := NewConfig(path, file)
 	if err != nil {
 		return fmt.Errorf("failed to reload config: %w", err)
 	}
-	s.conf = c
+	s.conf = config
 
 	if err := s.setRules(); err != nil {
 		return fmt.Errorf("failed to reload ruleset: %w", err)

@@ -34,29 +34,29 @@ type File struct {
 //
 // If any of the required configuration parameters are missing or invalid, an error
 // is returned.
-func (f *File) Config(cm map[string]any) error {
-	if cm["file"] == nil {
+func (f *File) Config(configMap map[string]any) error {
+	if configMap["file"] == nil {
 		return nil
 	}
-	c, ok := cm["file"].(map[string]any)
+	config, ok := configMap["file"].(map[string]any)
 	if !ok {
 		return fmt.Errorf("missing configuration for file action")
 	}
 	f.Enabled = true
 
-	fp, ok := c["output_filepath"].(string)
-	if !ok || fp == "" {
+	filePath, ok := config["output_filepath"].(string)
+	if !ok || filePath == "" {
 		return fmt.Errorf("no output_filename configured for file action")
 	}
-	f.FilePath = fp
+	f.FilePath = filePath
 
-	ot, ok := c["output_template"].(string)
-	if !ok || ot == "" {
+	outputTpl, ok := config["output_template"].(string)
+	if !ok || outputTpl == "" {
 		return fmt.Errorf("not output_template configured for file action")
 	}
-	f.OutputTemplate = ot
+	f.OutputTemplate = outputTpl
 
-	if ow, ok := c["overwrite"].(bool); ok && ow {
+	if hasOverwrite, ok := config["overwrite"].(bool); ok && hasOverwrite {
 		f.Overwrite = true
 	}
 
@@ -65,34 +65,34 @@ func (f *File) Config(cm map[string]any) error {
 
 // Process satisfies the plugins.Action interface for the File type
 // It takes in the log message (lm), match groups (mg), and configuration map (cm).
-func (f *File) Process(lm parsesyslog.LogMsg, mg []string) error {
+func (f *File) Process(logMessage parsesyslog.LogMsg, matchGroup []string) error {
 	if !f.Enabled {
 		return nil
 	}
 
-	of := os.O_APPEND | os.O_CREATE | os.O_WRONLY
+	openFlags := os.O_APPEND | os.O_CREATE | os.O_WRONLY
 	if f.Overwrite {
-		of = os.O_TRUNC | os.O_CREATE | os.O_WRONLY
+		openFlags = os.O_TRUNC | os.O_CREATE | os.O_WRONLY
 	}
 
-	fh, err := os.OpenFile(f.FilePath, of, 0o600)
+	fileHandle, err := os.OpenFile(f.FilePath, openFlags, 0o600)
 	if err != nil {
 		return fmt.Errorf("failed to open file for writing in file action: %w", err)
 	}
 	defer func() {
-		_ = fh.Close()
+		_ = fileHandle.Close()
 	}()
 
-	t, err := template.Compile(lm, mg, f.OutputTemplate)
+	tpl, err := template.Compile(logMessage, matchGroup, f.OutputTemplate)
 	if err != nil {
 		return err
 	}
-	_, err = fh.WriteString(t)
+	_, err = fileHandle.WriteString(tpl)
 	if err != nil {
 		return fmt.Errorf("failed to write log message to file %q: %w",
 			f.FilePath, err)
 	}
-	if err = fh.Sync(); err != nil {
+	if err = fileHandle.Sync(); err != nil {
 		return fmt.Errorf("failed to sync memory to file %q: %w",
 			f.FilePath, err)
 	}

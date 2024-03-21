@@ -22,14 +22,14 @@ type Connection struct {
 // NewConnection creates a new Connection object with the provided net.Conn.
 // The Connection object holds a reference to the provided net.Conn, along with an ID string,
 // bufio.Reader, and bufio.Writer. It returns a pointer to the created Connection object.
-func NewConnection(nc net.Conn) *Connection {
-	c := &Connection{
-		conn: nc,
+func NewConnection(netConn net.Conn) *Connection {
+	connection := &Connection{
+		conn: netConn,
 		id:   NewConnectionID(),
-		rb:   bufio.NewReader(nc),
-		wb:   bufio.NewWriter(nc),
+		rb:   bufio.NewReader(netConn),
+		wb:   bufio.NewWriter(netConn),
 	}
-	return c
+	return connection
 }
 
 // NewConnectionID generates a new unique message ID using a random number generator

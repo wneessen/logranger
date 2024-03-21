@@ -20,49 +20,49 @@ const (
 )
 
 func main() {
-	l := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With(slog.String("context", "logranger"))
-	cp := "logranger.toml"
-	cpe := os.Getenv("LOGRANGER_CONFIG")
-	if cpe != "" {
-		cp = cpe
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil)).With(slog.String("context", "logranger"))
+	confPath := "logranger.toml"
+	confPathEnv := os.Getenv("LOGRANGER_CONFIG")
+	if confPathEnv != "" {
+		confPath = confPathEnv
 	}
 
-	p := filepath.Dir(cp)
-	f := filepath.Base(cp)
-	c, err := logranger.NewConfig(p, f)
+	path := filepath.Dir(confPath)
+	file := filepath.Base(confPath)
+	config, err := logranger.NewConfig(path, file)
 	if err != nil {
-		l.Error("failed to read/parse config", LogErrKey, err)
+		logger.Error("failed to read/parse config", LogErrKey, err)
 		os.Exit(1)
 	}
 
-	s, err := logranger.New(c)
+	server, err := logranger.New(config)
 	if err != nil {
-		l.Error("failed to create new server", LogErrKey, err)
+		logger.Error("failed to create new server", LogErrKey, err)
 		os.Exit(1)
 	}
 
 	go func() {
-		if err = s.Run(); err != nil {
-			l.Error("failed to start logranger", LogErrKey, err)
+		if err = server.Run(); err != nil {
+			logger.Error("failed to start logranger", LogErrKey, err)
 			os.Exit(1)
 		}
 	}()
 
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc)
-	for rc := range sc {
-		if rc == syscall.SIGKILL || rc == syscall.SIGABRT || rc == syscall.SIGINT || rc == syscall.SIGTERM {
-			l.Warn("received signal. shutting down server", slog.String("signal", rc.String()))
-			// s.Stop()
-			l.Info("server gracefully shut down")
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan)
+	for recvSig := range signalChan {
+		if recvSig == syscall.SIGKILL || recvSig == syscall.SIGABRT || recvSig == syscall.SIGINT || recvSig == syscall.SIGTERM {
+			logger.Warn("received signal. shutting down server", slog.String("signal", recvSig.String()))
+			// server.Stop()
+			logger.Info("server gracefully shut down")
 			os.Exit(0)
 		}
-		if rc == syscall.SIGHUP {
-			l.Info(`received signal`,
+		if recvSig == syscall.SIGHUP {
+			logger.Info(`received signal`,
 				slog.String("signal", "SIGHUP"),
 				slog.String("action", "reloading config/ruleset"))
-			if err = s.ReloadConfig(p, f); err != nil {
-				l.Error("failed to reload config", LogErrKey, err)
+			if err = server.ReloadConfig(path, file); err != nil {
+				logger.Error("failed to reload config", LogErrKey, err)
 			}
 		}
 	}
