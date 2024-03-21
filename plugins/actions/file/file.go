@@ -10,8 +10,8 @@ import (
 
 	"github.com/wneessen/go-parsesyslog"
 
-	"src.neessen.cloud/wneessen/logranger/plugins/actions"
-	"src.neessen.cloud/wneessen/logranger/template"
+	"github.com/wneessen/logranger/plugins/actions"
+	"github.com/wneessen/logranger/template"
 )
 
 // File represents a file action that can be performed on a log message.
