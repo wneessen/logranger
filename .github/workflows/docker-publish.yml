@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2023 Winni Neessen <wn@neessen.dev>
+#
+# SPDX-License-Identifier: MIT
+
 name: Docker build and publish
 
 # This workflow uses actions that are not certified by GitHub.
