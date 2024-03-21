@@ -26,42 +26,43 @@ const (
 // NewListener initializes and returns a net.Listener based on the provided
 // configuration. It takes a pointer to a Config struct as a parameter.
 // Returns the net.Listener and an error if any occurred during initialization.
-func NewListener(c *Config) (net.Listener, error) {
-	var l net.Listener
-	var lerr error
-	switch c.Listener.Type {
+func NewListener(config *Config) (net.Listener, error) {
+	var listener net.Listener
+	var listenerErr error
+	switch config.Listener.Type {
 	case ListenerUnix:
-		rua, err := net.ResolveUnixAddr("unix", c.Listener.ListenerUnix.Path)
+		resolveUnixAddr, err := net.ResolveUnixAddr("unix", config.Listener.ListenerUnix.Path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve UNIX listener socket: %w", err)
 		}
-		l, lerr = net.Listen("unix", rua.String())
+		listener, listenerErr = net.Listen("unix", resolveUnixAddr.String())
 	case ListenerTCP:
-		la := net.JoinHostPort(c.Listener.ListenerTCP.Addr, fmt.Sprintf("%d", c.Listener.ListenerTCP.Port))
-		l, lerr = net.Listen("tcp", la)
+		listenAddr := net.JoinHostPort(config.Listener.ListenerTCP.Addr,
+			fmt.Sprintf("%d", config.Listener.ListenerTCP.Port))
+		listener, listenerErr = net.Listen("tcp", listenAddr)
 	case ListenerTLS:
-		if c.Listener.ListenerTLS.CertPath == "" || c.Listener.ListenerTLS.KeyPath == "" {
+		if config.Listener.ListenerTLS.CertPath == "" || config.Listener.ListenerTLS.KeyPath == "" {
 			return nil, ErrCertConfigEmpty
 		}
-		ce, err := tls.LoadX509KeyPair(c.Listener.ListenerTLS.CertPath, c.Listener.ListenerTLS.KeyPath)
+		cert, err := tls.LoadX509KeyPair(config.Listener.ListenerTLS.CertPath, config.Listener.ListenerTLS.KeyPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load X509 certificate: %w", err)
 		}
-		la := net.JoinHostPort(c.Listener.ListenerTLS.Addr, fmt.Sprintf("%d", c.Listener.ListenerTLS.Port))
-		lc := &tls.Config{Certificates: []tls.Certificate{ce}}
-		l, lerr = tls.Listen("tcp", la, lc)
+		listenAddr := net.JoinHostPort(config.Listener.ListenerTLS.Addr, fmt.Sprintf("%d", config.Listener.ListenerTLS.Port))
+		listenConf := &tls.Config{Certificates: []tls.Certificate{cert}}
+		listener, listenerErr = tls.Listen("tcp", listenAddr, listenConf)
 	default:
 		return nil, fmt.Errorf("failed to initialize listener: unknown listener type in config")
 	}
-	if lerr != nil {
-		return nil, fmt.Errorf("failed to initialize listener: %w", lerr)
+	if listenerErr != nil {
+		return nil, fmt.Errorf("failed to initialize listener: %w", listenerErr)
 	}
-	return l, nil
+	return listener, nil
 }
 
 // UnmarshalString satisfies the fig.StringUnmarshaler interface for the ListenerType type
-func (l *ListenerType) UnmarshalString(v string) error {
-	switch strings.ToLower(v) {
+func (l *ListenerType) UnmarshalString(value string) error {
+	switch strings.ToLower(value) {
 	case "unix":
 		*l = ListenerUnix
 	case "tcp":
@@ -69,7 +70,7 @@ func (l *ListenerType) UnmarshalString(v string) error {
 	case "tls":
 		*l = ListenerTLS
 	default:
-		return fmt.Errorf("unknown listener type: %s", v)
+		return fmt.Errorf("unknown listener type: %s", value)
 	}
 	return nil
 }
