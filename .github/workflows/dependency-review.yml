@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2023 Winni Neessen <wn@neessen.dev>
 #
 # SPDX-License-Identifier: MIT
-#
+
 # Dependency Review Action
 #
 # This Action will scan dependency manifest files that change as part of a Pull Request,
