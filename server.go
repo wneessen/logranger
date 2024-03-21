@@ -19,8 +19,8 @@ import (
 	_ "github.com/wneessen/go-parsesyslog/rfc3164"
 	_ "github.com/wneessen/go-parsesyslog/rfc5424"
 
-	"src.neessen.cloud/wneessen/logranger/plugins/actions"
-	_ "src.neessen.cloud/wneessen/logranger/plugins/actions/all"
+	"github.com/wneessen/logranger/plugins/actions"
+	_ "github.com/wneessen/logranger/plugins/actions/all"
 )
 
 const (

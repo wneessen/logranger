@@ -17,7 +17,7 @@ RUN go mod download
 RUN go mod verify
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -ldflags \
   '-w -s -extldflags "-static"' \
-   -o /builddir/logranger src.neessen.cloud/wneessen/logranger/cmd/server
+   -o /builddir/logranger github.com/wneessen/logranger/cmd/server
 
 ## Create scratch image
 FROM scratch

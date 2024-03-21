@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"src.neessen.cloud/wneessen/logranger"
+	"github.com/wneessen/logranger"
 )
 
 const (

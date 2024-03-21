@@ -6,10 +6,10 @@ SPDX-License-Identifier: MIT
 
 # Logranger
 
-[![GoDoc](https://godoc.org/src.neessen.cloud/wneessen/logranger?status.svg)](https://pkg.go.dev/src.neessen.cloud/wneessen/logranger)
-[![Go Report Card](https://goreportcard.com/badge/src.neessen.cloud/wneessen/logranger)](https://goreportcard.com/report/src.neessen.cloud/wneessen/logranger)
+[![GoDoc](https://godoc.org/github.com/wneessen/logranger?status.svg)](https://pkg.go.dev/github.com/wneessen/logranger)
+[![Go Report Card](https://goreportcard.com/badge/github.com/wneessen/logranger)](https://goreportcard.com/report/github.com/wneessen/logranger)
 [![#logranger on Discord](https://img.shields.io/badge/Discord-%23logranger-blue.svg)](https://discord.gg/ysQXkaccXk)
-[![REUSE status](https://api.reuse.software/badge/src.neessen.cloud/wneessen/logranger)](https://api.reuse.software/info/src.neessen.cloud/wneessen/logranger)
+[![REUSE status](https://api.reuse.software/badge/github.com/wneessen/logranger)](https://api.reuse.software/info/github.com/wneessen/logranger)
 <a href="https://ko-fi.com/D1D24V9IX"><img src="https://uploads-ssl.webflow.com/5c14e387dab576fe667689cf/5cbed8a4ae2b88347c06c923_BuyMeACoffee_blue.png" height="20" alt="buy ma a coffee"></a>
 
 *Note:* Logranger is still WIP
@@ -45,10 +45,5 @@ Logranger is released under the [MIT License](LICENSE).
 
 ## Support
 
-If you encounter any problems while using Logranger, please [create an issue](https://src.neessen.cloud/wneessen/logranger/issues) in this 
+If you encounter any problems while using Logranger, please [create an issue](https://github.com/wneessen/logranger/issues) in this 
 repository. We appreciate any feedback or suggestions for improving Logranger.
-
-## Mirror
-
-Please note that the repository on Github is just a mirror of 
-[https://src.neessen.cloud/wneessen/logranger](https://src.neessen.cloud/wneessen/logranger) for ease of access and reachability.
