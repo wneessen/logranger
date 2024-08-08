@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 ## Build first
-FROM golang:alpine@sha256:ff45d877acb9408879d7d5c0a1aa002f97865496627e7c68c353469bea8ca957 AS builder
+FROM golang:alpine@sha256:1a478681b671001b7f029f94b5016aed984a23ad99c707f6a0ab6563860ae2f3 AS builder
 RUN mkdir /builddithur
 ADD cmd/ /builddir/cmd/
 ADD template/ /builddir/template
