@@ -95,7 +95,7 @@ func (s *Server) RunWithListener(listener net.Listener) error {
 	pid := os.Getpid()
 	s.log.Debug("creating PID file", slog.String("pid_file", pidFile.Name()),
 		slog.Int("pid", pid))
-	_, err = pidFile.WriteString(fmt.Sprintf("%d", pid))
+	_, err = fmt.Fprintf(pidFile, "%d", pid)
 	if err != nil {
 		s.log.Error("failed to write PID to PID file", LogErrKey, err)
 		_ = pidFile.Close()
