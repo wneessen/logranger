@@ -8,7 +8,7 @@ go 1.25.3
 
 require (
 	github.com/kkyr/fig v0.5.0
-	github.com/wneessen/go-parsesyslog v0.2.2
+	github.com/wneessen/go-parsesyslog v0.3.0
 )
 
 require (
